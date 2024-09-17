@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <err.h>
 #include <string.h>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
 
 int main(int argc, char **argv) 
 {
@@ -31,7 +29,7 @@ int main(int argc, char **argv)
         length *= 256;
         length += length_data[i];
     }
-    printf("length of data = %u\n", length);
+    // printf("length of data = %u\n", length);
 
     char chunk_name[5];
     fread(chunk_name, 1, 4, file);
