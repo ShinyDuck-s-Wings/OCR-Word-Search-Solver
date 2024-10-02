@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-// Simple nn that can learn xor
+// Neural Network that learn how to recognize letters in a 64x64 matrix
 
 double sigmoid(double x) { return 1 / (1 + exp(-x)); }
 double dSigmoid(double x) { return x * (1 - x); }
