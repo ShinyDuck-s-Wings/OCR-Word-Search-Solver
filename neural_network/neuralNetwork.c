@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <errx.h>
 
-// Neural Network that learn how to recognize letters in a 64x64 matrix
+// Simple nn that can learn xor
 
 double sigmoid(double x) { return 1 / (1 + exp(-x)); }
 double dSigmoid(double x) { return x * (1 - x); }
@@ -24,67 +25,82 @@ void shuffle(int *array, size_t n)
     }
 }
 
-#define nbInputs 4096
-#define nbHiddenNodes 42
+#define nbInputs 784
+#define nbHiddenNodes1 42
+#define nbHiddenNodes2 42
 #define nbOutputs 26
 #define nbTrainingSets 26
+
+void init_training_inputs(double **training_inputs)
+{
+    int pfd[2];
+    int pipe(pfd);
+    if (fork())
+    {
+        close(pfd[1]);
+        
+    }
+    else
+    {
+        close(pfd[0]);
+        char *argv[] = { "ls", "learning_data_base/", "|", "grep", ".png" }
+        execvp();
+        err(1, "execvp()");
+    }
+}
 
 int main()
 {
     const double lr = 0.1f; // Speed Rate for learning
 
-    double hiddenLayer[nbHiddenNodes];
+    double hiddenLayer1[nbHiddenNodes1];
+    double hiddenLayer2[nbHiddenNodes2];
     double outputLayer[nbOutputs];
 
-    double hiddenLayerBias[nbHiddenNodes];
+    double hiddenLayerBias1[nbHiddenNodes1];
+    double hiddenLayerBias2[nbHiddenNodes2];
     double outputLayerBias[nbOutputs];
 
-    double hiddenWeights[nbInputs][nbHiddenNodes];
-    double outputWeights[nbHiddenNodes][nbOutputs];
+    double hiddenWeights1[nbInputs][nbHiddenNodes1];
+    double hiddenWeights2[nbHiddenNodes1][nbHiddenNodes2];
+    double outputWeights[nbHiddenNodes2][nbOutputs];
 
 
 
-    double training_inputs[nbTrainingSets][nbInputs]; // NEED TO BE MAKE
+    double training_inputs[nbTrainingSets][nbInputs];
 
-    double training_outputs[nbTrainingSets][nbOutputs] = 
-    {{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f},
-     {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f}};
+    double training_outputs[nbTrainingSets][nbOutputs];
+
+    for (int i = 0; i < nbTrainingSets; i++)
+    {
+        for (int j = 0; j < nbOutputs; j++)
+        {
+            training_outputs[i][j] = 0.0f;
+            if (i == j)
+                training_outputs[i][j] = 1.0f;
+        }
+    }
+
     char predicted_outputs[nbOutputs] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 
 
     for (int i = 0; i < nbInputs; i++)
     {
-        for (int j = 0; j < nbHiddenNodes; j++)
+        for (int j = 0; j < nbHiddenNodes1; j++)
         {
-            hiddenWeights[i][j] = init_weights();
+            hiddenWeights1[i][j] = init_weights();
         }
     }
 
-    for (int i = 0; i < nbHiddenNodes; i++)
+    for (int i = 0; i < nbHiddenNodes1; i++)
+    {
+        for (int j = 0; j < nbHiddenNodes2; j++)
+        {
+            hiddenWeights2[i][j] = init_weights();
+        }
+    }
+
+    for (int i = 0; i < nbHiddenNodes2; i++)
     {
         for (int j = 0; j < nbOutputs; j++)
         {
@@ -92,7 +108,7 @@ int main()
         }
     }
 
-    for (int i = 0; i < nbHiddenNodes; i++)
+    for (int i = 0; i < nbHiddenNodes2; i++)
     {
         outputLayerBias[i] = init_weights();
     }
@@ -115,32 +131,46 @@ int main()
 
             // Forward pass
             
-            // Compute hidden layer activation
-            for (int j = 0; j < nbHiddenNodes; j++)
+            // Compute hidden layer 1 activation
+            for (int j = 0; j < nbHiddenNodes1; j++)
             {
-                double activation = hiddenLayerBias[j];
+                double activation = hiddenLayerBias1[j];
 
                 for (int k = 0; k < nbInputs; k++)
                 {
-                    activation += training_inputs[i][k] * hiddenWeights[k][j];
+                    activation += training_inputs[i][k] * hiddenWeights1[k][j];
                 }
 
-                hiddenLayer[j] = sigmoid(activation);
+                hiddenLayer1[j] = sigmoid(activation);
             }
+
+            // Compute hidden layer 2 activation
+            for (int j = 0; j < nbHiddenNodes2; j++)
+            {
+                double activation = hiddenLayerBias1[j];
+
+                for (int k = 0; k < nbHiddenNodes1; k++)
+                {
+                    activation += hiddenLayer1[k] * hiddenWeights2[k][j];
+                }
+
+                hiddenLayer2[j] = sigmoid(activation);
+            }
+
 
             // Compute output layer activation
             for (int j = 0; j < nbOutputs; j++)
             {
-                double activation = hiddenLayerBias[j];
+                double activation = hiddenLayerBias2[j];
 
-                for (int k = 0; k < nbHiddenNodes; k++)
+                for (int k = 0; k < nbHiddenNodes2; k++)
                 {
-                    activation += hiddenLayer[k] * outputWeights[k][j];
+                    activation += hiddenLayer2[k] * outputWeights[k][j];
                 }
 
                 outputLayer[j] = sigmoid(activation);
             }
-            
+
             char mp = predicted_outputs[0]
             int oL = outputLayer[0]
             for (int l = 1; l < nbOutputs; l++)
@@ -167,19 +197,33 @@ int main()
                 double error = (training_outputs[i][j] - outputLayer[j]);
                 deltaOutput[j] = error * dSigmoid(outputLayer[j]);
             }
-            
-            // Compute change in hidden weight
 
-            double deltaHidden[nbHiddenNodes];
+            // Compute change in hidden weight 2
 
-            for (int j = 0; j < nbHiddenNodes; j++)
+            double deltaHidden2[nbHiddenNodes2];
+
+            for (int j = 0; j < nbHiddenNodes2; j++)
             {
                 double error = 0.0f;
                 for(int k = 0; k < nbOutputs; k++)
                 {
                     error += deltaOutput[k] * outputWeights[j][k];
                 }
-                deltaHidden[j] = error * dSigmoid(hiddenLayer[j]);
+                deltaHidden2[j] = error * dSigmoid(hiddenLayer2[j]);
+            }
+            
+            // Compute change in hidden weight 1
+
+            double deltaHidden1[nbHiddenNodes1];
+
+            for (int j = 0; j < nbHiddenNodes1; j++)
+            {
+                double error = 0.0f;
+                for(int k = 0; k < nbHiddenNodes2; k++)
+                {
+                    error += deltaHidden2[k] * hiddenWeights2[j][k];
+                }
+                deltaHidden1[j] = error * dSigmoid(hiddenLayer1[j]);
             }
 
 
@@ -187,19 +231,29 @@ int main()
             for (int j = 0; j < nbOutputs; j++)
             {
                 outputLayerBias[j] += deltaOutput[j] * lr;
-                for (int k = 0; k < nbHiddenNodes; k++)
+                for (int k = 0; k < nbHiddenNodes2; k++)
                 {
-                    outputWeights[k][j] += hiddenLayer[k] * deltaOutput[j] * lr;
+                    outputWeights[k][j] += hiddenLayer2[k] * deltaOutput[j] * lr;
                 }
             }
 
-            // Apply change in hidden weights
-            for (int j = 0; j < nbHiddenNodes; j++)
+            // Apply change in hidden weights 2
+            for (int j = 0; j < nbHiddenNodes2; j++)
             {
-                hiddenLayerBias[j] += deltaHidden[j] * lr;
+                hiddenLayerBias2[j] += deltaHidden2[j] * lr;
+                for (int k = 0; k < nbHiddenNodes1; k++)
+                {
+                    hiddenWeights2[k][j] += hiddenLayer1[k] * deltaHidden2[j] * lr;
+                }
+            }
+
+            // Apply change in hidden weights 1
+            for (int j = 0; j < nbHiddenNodes1; j++)
+            {
+                hiddenLayerBias1[j] += deltaHidden1[j] * lr;
                 for (int k = 0; k < nbInputs; k++)
                 {
-                    hiddenWeights[k][j] += training_inputs[i][k] * deltaHidden[j] * lr;
+                    hiddenWeights1[k][j] += training_inputs[i][k] * deltaHidden1[j] * lr;
                 }
             }
         }
