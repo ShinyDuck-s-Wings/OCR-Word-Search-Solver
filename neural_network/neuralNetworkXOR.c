@@ -25,7 +25,8 @@ void shuffle(int *array, size_t n)
 }
 
 #define nbInputs 2
-#define nbHiddenNodes 2
+#define nbHiddenNodes1 2
+#define nbHiddenNodes2 2
 #define nbOutputs 1
 #define nbTrainingSets 4
 
@@ -33,14 +34,17 @@ int main()
 {
     const double lr = 0.1f; // Speed Rate for learning
 
-    double hiddenLayer[nbHiddenNodes];
+    double hiddenLayer1[nbHiddenNodes1];
+    double hiddenLayer2[nbHiddenNodes2];
     double outputLayer[nbOutputs];
 
-    double hiddenLayerBias[nbHiddenNodes];
+    double hiddenLayerBias1[nbHiddenNodes1];
+    double hiddenLayerBias2[nbHiddenNodes2];
     double outputLayerBias[nbOutputs];
 
-    double hiddenWeights[nbInputs][nbHiddenNodes];
-    double outputWeights[nbHiddenNodes][nbOutputs];
+    double hiddenWeights1[nbInputs][nbHiddenNodes1];
+    double hiddenWeights2[nbHiddenNodes1][nbHiddenNodes2];
+    double outputWeights[nbHiddenNodes2][nbOutputs];
 
 
 
@@ -57,13 +61,21 @@ int main()
 
     for (int i = 0; i < nbInputs; i++)
     {
-        for (int j = 0; j < nbHiddenNodes; j++)
+        for (int j = 0; j < nbHiddenNodes1; j++)
         {
-            hiddenWeights[i][j] = init_weights();
+            hiddenWeights1[i][j] = init_weights();
         }
     }
 
-    for (int i = 0; i < nbHiddenNodes; i++)
+    for (int i = 0; i < nbHiddenNodes1; i++)
+    {
+        for (int j = 0; j < nbHiddenNodes2; j++)
+        {
+            hiddenWeights2[i][j] = init_weights();
+        }
+    }
+
+    for (int i = 0; i < nbHiddenNodes2; i++)
     {
         for (int j = 0; j < nbOutputs; j++)
         {
@@ -71,7 +83,7 @@ int main()
         }
     }
 
-    for (int i = 0; i < nbHiddenNodes; i++)
+    for (int i = 0; i < nbHiddenNodes2; i++)
     {
         outputLayerBias[i] = init_weights();
     }
@@ -81,7 +93,7 @@ int main()
 
     int trainingSetOrder[] = {0,1,2,3};
     
-    int nbOfEpochs = 10000;
+    int nbOfEpochs = 100000;
     
     // Train the neural network for a number of epochs
     for (int epoch = 0; epoch < nbOfEpochs; epoch++)
@@ -94,27 +106,41 @@ int main()
 
             // Forward pass
             
-            // Compute hidden layer activation
-            for (int j = 0; j < nbHiddenNodes; j++)
+            // Compute hidden layer 1 activation
+            for (int j = 0; j < nbHiddenNodes1; j++)
             {
-                double activation = hiddenLayerBias[j];
+                double activation = hiddenLayerBias1[j];
 
                 for (int k = 0; k < nbInputs; k++)
                 {
-                    activation += training_inputs[i][k] * hiddenWeights[k][j];
+                    activation += training_inputs[i][k] * hiddenWeights1[k][j];
                 }
 
-                hiddenLayer[j] = sigmoid(activation);
+                hiddenLayer1[j] = sigmoid(activation);
             }
+
+            // Compute hidden layer 2 activation
+            for (int j = 0; j < nbHiddenNodes2; j++)
+            {
+                double activation = hiddenLayerBias1[j];
+
+                for (int k = 0; k < nbHiddenNodes1; k++)
+                {
+                    activation += hiddenLayer1[k] * hiddenWeights2[k][j];
+                }
+
+                hiddenLayer2[j] = sigmoid(activation);
+            }
+
 
             // Compute output layer activation
             for (int j = 0; j < nbOutputs; j++)
             {
-                double activation = hiddenLayerBias[j];
+                double activation = hiddenLayerBias2[j];
 
-                for (int k = 0; k < nbHiddenNodes; k++)
+                for (int k = 0; k < nbHiddenNodes2; k++)
                 {
-                    activation += hiddenLayer[k] * outputWeights[k][j];
+                    activation += hiddenLayer2[k] * outputWeights[k][j];
                 }
 
                 outputLayer[j] = sigmoid(activation);
@@ -136,19 +162,33 @@ int main()
                 double error = (training_outputs[i][j] - outputLayer[j]);
                 deltaOutput[j] = error * dSigmoid(outputLayer[j]);
             }
-            
-            // Compute change in hidden weight
 
-            double deltaHidden[nbHiddenNodes];
+            // Compute change in hidden weight 2
 
-            for (int j = 0; j < nbHiddenNodes; j++)
+            double deltaHidden2[nbHiddenNodes2];
+
+            for (int j = 0; j < nbHiddenNodes2; j++)
             {
                 double error = 0.0f;
                 for(int k = 0; k < nbOutputs; k++)
                 {
                     error += deltaOutput[k] * outputWeights[j][k];
                 }
-                deltaHidden[j] = error * dSigmoid(hiddenLayer[j]);
+                deltaHidden2[j] = error * dSigmoid(hiddenLayer2[j]);
+            }
+            
+            // Compute change in hidden weight 1
+
+            double deltaHidden1[nbHiddenNodes1];
+
+            for (int j = 0; j < nbHiddenNodes1; j++)
+            {
+                double error = 0.0f;
+                for(int k = 0; k < nbHiddenNodes2; k++)
+                {
+                    error += deltaHidden2[k] * hiddenWeights2[j][k];
+                }
+                deltaHidden1[j] = error * dSigmoid(hiddenLayer1[j]);
             }
 
 
@@ -156,19 +196,29 @@ int main()
             for (int j = 0; j < nbOutputs; j++)
             {
                 outputLayerBias[j] += deltaOutput[j] * lr;
-                for (int k = 0; k < nbHiddenNodes; k++)
+                for (int k = 0; k < nbHiddenNodes2; k++)
                 {
-                    outputWeights[k][j] += hiddenLayer[k] * deltaOutput[j] * lr;
+                    outputWeights[k][j] += hiddenLayer2[k] * deltaOutput[j] * lr;
                 }
             }
 
-            // Apply change in hidden weights
-            for (int j = 0; j < nbHiddenNodes; j++)
+            // Apply change in hidden weights 2
+            for (int j = 0; j < nbHiddenNodes2; j++)
             {
-                hiddenLayerBias[j] += deltaHidden[j] * lr;
+                hiddenLayerBias2[j] += deltaHidden2[j] * lr;
+                for (int k = 0; k < nbHiddenNodes1; k++)
+                {
+                    hiddenWeights2[k][j] += hiddenLayer1[k] * deltaHidden2[j] * lr;
+                }
+            }
+
+            // Apply change in hidden weights 1
+            for (int j = 0; j < nbHiddenNodes1; j++)
+            {
+                hiddenLayerBias1[j] += deltaHidden1[j] * lr;
                 for (int k = 0; k < nbInputs; k++)
                 {
-                    hiddenWeights[k][j] += training_inputs[i][k] * deltaHidden[j] * lr;
+                    hiddenWeights1[k][j] += training_inputs[i][k] * deltaHidden1[j] * lr;
                 }
             }
         }
