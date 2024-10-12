@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <errx.h>
+#include <err.h>
+#include <dirent.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 // Simple nn that can learn xor
 
@@ -31,21 +34,78 @@ void shuffle(int *array, size_t n)
 #define nbOutputs 26
 #define nbTrainingSets 26
 
-void init_training_inputs(double **training_inputs)
+void init_training(double **training_inputs, double **training_outputs, size_t size)
 {
-    int pfd[2];
-    int pipe(pfd);
-    if (fork())
+    DIR *d;
+    struct dirent *dir;
+    d = opendir("learning_data_base");
+    size_t i = 0;
+    if (d)
     {
-        close(pfd[1]);
-        
-    }
-    else
-    {
-        close(pfd[0]);
-        char *argv[] = { "ls", "learning_data_base/", "|", "grep", ".png" }
-        execvp();
-        err(1, "execvp()");
+        while ((dir = readdir(d)) != NULL && i < size) 
+        {
+            if (dir->d_name[0] != '.')    
+            {
+                // function to make the image in black and white
+                training_inputs[i];
+                switch (dir->d_name[0])
+                {
+                    case 'a': training_outputs[i] = {1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'b': training_outputs[i] = {0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'c': training_outputs[i] = {0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'd': training_outputs[i] = {0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'e': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'f': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'g': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'h': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'i': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'j': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'k': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'l': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'm': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'n': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'o': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'p': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'q': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'r': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 's': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 't': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'u': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'v': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'w': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00, 0.00};
+                              break;
+                    case 'x': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00, 0.00};
+                              break;
+                    case 'y': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00, 0.00};
+                              break;
+                    case 'z': training_outputs[i] = {0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 1.00};
+                              break;
+                }
+            }
+        }
+        closedir(d);
     }
 }
 
@@ -71,15 +131,7 @@ int main()
 
     double training_outputs[nbTrainingSets][nbOutputs];
 
-    for (int i = 0; i < nbTrainingSets; i++)
-    {
-        for (int j = 0; j < nbOutputs; j++)
-        {
-            training_outputs[i][j] = 0.0f;
-            if (i == j)
-                training_outputs[i][j] = 1.0f;
-        }
-    }
+    init_training(training_inputs, training_outputs, nbTrainingSets);
 
     char predicted_outputs[nbOutputs] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
 
@@ -121,6 +173,7 @@ int main()
     int nbOfEpochs = 99996;
     
     // Train the neural network for a number of epochs
+
     for (int epoch = 0; epoch < nbOfEpochs; epoch++)
     {
         shuffle(trainingSetOrder, nbTrainingSets);
@@ -132,6 +185,7 @@ int main()
             // Forward pass
             
             // Compute hidden layer 1 activation
+
             for (int j = 0; j < nbHiddenNodes1; j++)
             {
                 double activation = hiddenLayerBias1[j];
@@ -145,6 +199,7 @@ int main()
             }
 
             // Compute hidden layer 2 activation
+
             for (int j = 0; j < nbHiddenNodes2; j++)
             {
                 double activation = hiddenLayerBias1[j];
@@ -159,6 +214,7 @@ int main()
 
 
             // Compute output layer activation
+
             for (int j = 0; j < nbOutputs; j++)
             {
                 double activation = hiddenLayerBias2[j];
@@ -171,8 +227,8 @@ int main()
                 outputLayer[j] = sigmoid(activation);
             }
 
-            char mp = predicted_outputs[0]
-            int oL = outputLayer[0]
+            char mp = predicted_outputs[0];
+            int oL = outputLayer[0];
             for (int l = 1; l < nbOutputs; l++)
             {
                 if (oL < outputLayer[l])
@@ -228,6 +284,7 @@ int main()
 
 
             // Apply change in output weights
+            
             for (int j = 0; j < nbOutputs; j++)
             {
                 outputLayerBias[j] += deltaOutput[j] * lr;
@@ -238,6 +295,7 @@ int main()
             }
 
             // Apply change in hidden weights 2
+
             for (int j = 0; j < nbHiddenNodes2; j++)
             {
                 hiddenLayerBias2[j] += deltaHidden2[j] * lr;
@@ -248,6 +306,7 @@ int main()
             }
 
             // Apply change in hidden weights 1
+
             for (int j = 0; j < nbHiddenNodes1; j++)
             {
                 hiddenLayerBias1[j] += deltaHidden1[j] * lr;
