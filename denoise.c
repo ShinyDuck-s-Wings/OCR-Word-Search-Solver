@@ -50,10 +50,6 @@ Uint8 calculate_threshold(SDL_Surface *surface)
     return (min + max) / 2;
 }
 
-void detect_edge(SDL_Surface *surface)
-{
-    
-}
 
 void mean_filter(SDL_Surface *surface)
 {
@@ -126,70 +122,6 @@ void median_filter(SDL_Surface *surface)
             Uint32 pixel = SDL_MapRGB(surface->format, m, m, m);
             pixels[i * width + j] = pixel;
         }
-    }
-
-    SDL_UnlockSurface(surface);
-}
-
-void reinforce_contrast(SDL_Surface *surface)
-{
-    if(SDL_LockSurface(surface) != 0)
-	{
-		printf("SLD_LockSurface: %s\n",SDL_GetError());
-		return;
-	}
-    Uint32 *pixels = (Uint32*) surface->pixels;
-    int width = surface->w;
-    int height = surface->h;
-    const int radius = 10;
-    const int operant_count = (1 + 2*radius) * (1 + 2 * radius);
-    for(int i = radius; i < height - radius; i++)
-    {
-        for(int j = radius; j < width - radius; j++)
-        {
-            Uint8 min, max = pixels[(i - radius) * width + (j - radius)];
-            for(int k = i - radius; k <= i + radius; k++)
-            {
-                for(int l = j - radius; l <= j + radius; l++)
-                {
-                    Uint32 pixel = pixels[k * width + l];
-                    Uint8 v = pixel & 0xFF;
-
-                    if(v < min)
-                    {
-                        min = v;
-                    }
-                    if(v > max)
-                    {
-                        max = v;
-                    }
-                }
-            }
-
-            Uint8 threshold = (min + max)/2 + 65;
-            for(int k = i - radius; k <= i + radius; k++)
-            {
-                for(int l = j - radius; l <= j + radius; l++)
-                {
-                    Uint32 pixel = pixels[k * width + l];
-                    Uint8 v = pixel & 0xFF;
-
-                    if(v < threshold)
-                    {
-                        Uint32 pixel = SDL_MapRGB(surface->format, 0, 0, 0);
-                        pixels[k * width + l] = pixel;
-                    }
-                    else
-                    {
-                        Uint32 pixel = SDL_MapRGB(surface->format, 255, 255, 255);
-                        pixels[k * width + l] = pixel;
-                    }
-                }
-            }
-
-            j += radius;
-        }
-        i += radius;
     }
 
     SDL_UnlockSurface(surface);

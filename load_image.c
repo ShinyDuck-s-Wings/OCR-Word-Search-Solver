@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <SDL2/SDL.h>
 #include "denoise.c"
+#include "reinforce_contrast.c"
 //#include <SDL2/SDL_image.h>
 
 
@@ -80,9 +81,11 @@ int main(int argc, char** argv)
     SDL_SetWindowSize(window,  surface->w, surface->h);
 
     to_grayscale(surface);
+
     mean_filter(surface);
     median_filter(surface);
-    reinforce_contrast(surface);
+
+    detect_edges(surface);
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
 
