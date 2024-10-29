@@ -158,21 +158,29 @@ void shuffle(int *array, size_t n)
 
 void trainLetter(int nbTrainingInputs)
 {
+    // Learning Rate
     double lr = 0.1f;
+    
 
+    // Weights
     double weightsHiddenNodes1[nbHiddenNodes1][nbInputs];
     double weightsHiddenNodes2[nbHiddenNodes2][nbHiddenNodes1];
     double weightsOutputs[nbOutputs][nbHiddenNodes2];
+    
 
+    // Bias
     double biasHiddenNodes1[nbHiddenNodes1];
     double biasHiddenNodes2[nbHiddenNodes2];
     double biasOutputs[nbOutputs];
 
+
+    // Layer
     double layerHiddenNodes1[nbHiddenNodes1];
     double layerHiddenNodes2[nbHiddenNodes2];
     double layerOutputs[nbOutputs];
 
 
+    // Initialisation of training values
     double **trainInputs = malloc(nbTrainingInputs * sizeof(double*));
     for (int i = 0; i < nbTrainingInputs; i++)
         trainInputs[i] = malloc(nbInputs * sizeof(double));
@@ -190,8 +198,8 @@ void trainLetter(int nbTrainingInputs)
                                'o', 'p', 'q', 'r', 's', 't', 'u',
                                'v', 'w', 'x', 'y', 'z'};
     
-    // printf("\nBalise after Init Training\n");
-
+    
+    // Initialisation of weights and bias
     for (int i = 0; i < nbHiddenNodes1; i++)
         for (int j = 0; j < nbInputs; j++)
             weightsHiddenNodes1[i][j] = init_weights();
@@ -213,7 +221,6 @@ void trainLetter(int nbTrainingInputs)
     for (int i = 0; i < nbOutputs; i++)
         biasOutputs[i] = init_weights();
 
-    // printf("\nBalise before Training\n");
 
     // T R A I N I N G
 
@@ -232,6 +239,8 @@ void trainLetter(int nbTrainingInputs)
             int i = trainSetOrder[x];
 
             // Forward Propagation
+            
+            // Activation of the first Hidden Layer
 
             for (int j = 0; j < nbHiddenNodes1; j++)
             {
@@ -241,9 +250,9 @@ void trainLetter(int nbTrainingInputs)
                     activation += trainInputs[i][k] * weightsHiddenNodes1[j][k];
 
                 layerHiddenNodes1[j] = sigmoid(activation);
-                //if (epoch == 0)
-                //    printf("\n%g\n", activation);
             }
+
+            // Activation of the second Hidden Layer
 
             for (int j = 0; j < nbHiddenNodes2; j++)
             {
@@ -255,6 +264,8 @@ void trainLetter(int nbTrainingInputs)
                 layerHiddenNodes2[j] = sigmoid(activation);
             }
 
+            // Activation of the Output Layer
+
             for (int j = 0; j < nbOutputs; j++)
             {
                 double activation = biasOutputs[j];
@@ -265,6 +276,8 @@ void trainLetter(int nbTrainingInputs)
                 layerOutputs[j] = sigmoid(activation);
             }
             
+            // Show the evolution of the Outputs
+
             if (epoch == nbEpochs)
             {
                 char mp = alphabet[0];
@@ -285,6 +298,8 @@ void trainLetter(int nbTrainingInputs)
             }
 
             // Backward Propagation
+            
+            // Compute change in output weights
 
             double dPredictedOutput[nbOutputs];
 
@@ -293,6 +308,8 @@ void trainLetter(int nbTrainingInputs)
                 double error = trainOutputs[i][j] - layerOutputs[j];
                 dPredictedOutput[j] = error * dSigmoid(layerOutputs[j]);
             }
+
+            // Compute change in hidden weight 2
 
             double dHidden2[nbHiddenNodes2];
 
@@ -306,6 +323,8 @@ void trainLetter(int nbTrainingInputs)
                 dHidden2[j] = error * dSigmoid(layerHiddenNodes2[j]);
             }
 
+            // Compute change in hidden weight 1
+
             double dHidden1[nbHiddenNodes1];
             
             for (int j = 0; j < nbHiddenNodes1; j++)
@@ -318,6 +337,8 @@ void trainLetter(int nbTrainingInputs)
                 dHidden1[j] = error * dSigmoid(layerHiddenNodes1[j]);
             }
 
+            // Apply change in output weights
+
             for (int j = 0; j < nbOutputs; j++)
             {
                 biasOutputs[j] += dPredictedOutput[j] * lr;
@@ -328,6 +349,8 @@ void trainLetter(int nbTrainingInputs)
                 }
             }
 
+            // Apply change in hidden weights 2
+
             for (int j = 0; j < nbHiddenNodes2; j++)
             {
                 biasHiddenNodes2[j] += dHidden2[j] * lr;
@@ -337,6 +360,8 @@ void trainLetter(int nbTrainingInputs)
                         layerHiddenNodes1[k] * dHidden2[j];
                 }
             }
+
+            // Apply change in hidden weights 1
 
             for (int j = 0; j < nbHiddenNodes1; j++)
             {
