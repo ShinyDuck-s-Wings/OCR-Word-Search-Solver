@@ -1,1 +1,0 @@
-# OCR-Word-Search-Solver
