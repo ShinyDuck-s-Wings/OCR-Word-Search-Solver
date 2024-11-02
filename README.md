@@ -32,20 +32,22 @@ For example:
 
 In the directory `neural_network/`, you can do the command `make all` to create the executables `XAND` and `NeuralNetwork`.
   
-With the first one, `XAND`, you have two possible mode:
-* `./XAND train` -- It will create a directory `Data/` which contains all the weights and bais of the neural network XAND
-* `./XAND use x y` -- If the command `train` was not execute it will do the training and will save the weights and bais in the `Data/` directory and then will give the solution of x XAND y
-                      else it will use the weights and bais in the `Data/` directory and then will give the solution of x XAND y (x and y equal to 0 or 1)
+With the first one, `XAND`, you have two possible modes:
+* `./XAND train` -- It will create a directory `Data/` which contains all the weights and bias of the neural network XAND
+* `./XAND use x y` -- If the command `train` was not executed it will do the training and will save the weights and bias in the `Data/` directory and then will give the solution of x XAND y
+                      else it will use the weights and bais in the `Data/` directory and then provide the solution of x XAND y (x and y equal to 0 or 1)
   
-With the second one, `NeuralNetwork`, you can train an neural network with the image of the letters in `learning_data_base/` for that execute `./NeuralNetwork`.
+With the second one, `NeuralNetwork`, you can train a neural network with the images of the letters in `learning_data_base/`. 
+
+To do that execute : `./NeuralNetwork`.
 
 ### Solver
 
 In the directory `solver/`, you can do the command `make all` to create the executables `solver` and `cross`.
   
-The first one is used by the second and is in fact not to use.
+The first one is used by the second and is in fact not to be used manually.
   
-The second one allow you to see an example of how the solution is found, for the moment it only work with the first image of the level one since the different part are not link.
+The second one allows you to see an example of how the solution is found, for the moment it only works with the first image of level one since the different parts are not linked.
   
 To see the result : 
   
