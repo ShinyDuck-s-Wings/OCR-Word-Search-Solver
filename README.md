@@ -21,7 +21,7 @@ In the directory `image_detection/`, you can do the command `make all` to create
 
 With it you can split the letters from the grid and the letters from the words in two differents files `letters` and `words` in the root of this repository.
 
-To use it, you need to precise one of the pre-treated files.
+To use it, you need to indicate one of the pre-treated files.
 
 For example:
   
