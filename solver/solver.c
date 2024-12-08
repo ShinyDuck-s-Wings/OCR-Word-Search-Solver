@@ -5,12 +5,12 @@
 #include <SDL2/SDL_image.h>
 #include <math.h>
 
-int xi = 0;
-int xf = 0;
-int yi = 0;
-int yf = 0;
+/*int gridxi = 23;
+int gridyi = 24;
+int gridxf = 617;
+int gridyf = 670;
 int size = 12;
-int height = 14;
+int height = 14;*/
 
 SDL_Window *create_window(char *title, unsigned int width, unsigned int height)
 {
@@ -34,38 +34,7 @@ void close_program(SDL_Window *window, SDL_Renderer *renderer)
   SDL_Quit();
 }
 
-void draw_line(SDL_Surface *surface, int x1, int y1, int x2, int y2)
-{
-    Uint32 *pixels = (*surface).pixels;
-    SDL_LockSurface(surface);
-    SDL_PixelFormat *format = (*surface).format;
-    int dx = x2 - x1;
-    int dy = y2 - y1;
-    while(dy != 0 || dx != 0)
-    {
-        *(pixels + x1 + dx + (y1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 + 1 + dx + (y1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 - 1 + dx + (y1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 + dx + (y1 + 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 + dx + (y1 - 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 + 1 + dx + (y1 + 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 + 1 + dx + (y1 - 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 - 1 + dx + (y1 + 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        *(pixels + x1 - 1 + dx + (y1 - 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
-        if(dy > 0)
-            dy--;
-        else if(dy < 0)
-            dy++;
-        if(dx > 0)
-            dx--;
-        else if(dx < 0)
-            dx++;
-    }
-
-    SDL_UnlockSurface(surface);
-}
-
-void findword(size_t horizontal, size_t vertical, char grid[vertical][horizontal], char word[], int* xi, int* yi, int* xf, int* yf)
+void findword(size_t horizontal, size_t vertical, char** grid, char* word, int* xi, int* yi, int* xf, int* yf)
 {
     size_t len = 0;
     while(word[len] != 0)
@@ -215,13 +184,183 @@ void findword(size_t horizontal, size_t vertical, char grid[vertical][horizontal
     *yf = 0;
 }
 
+int id_color(Uint32 pixel_color, SDL_PixelFormat *format)
+{
+    Uint8 r;
+    Uint8 g;
+    Uint8 b;
+    SDL_GetRGB(pixel_color,format,&r,&g,&b);
+    if(r == 255 && g == 0 && b == 0)
+    {
+        return 1;
+    }
+    if(r < 50 && g < 50 && b < 50)
+    {
+        return 2;
+    }
+    if(r > 200 && g > 200 && b > 200)
+    {
+        return 3;
+    }
+    return 0;
+}
+
+void DrawCircle(SDL_Surface* surface, int centreX, int centreY, int radius)
+{
+    SDL_PixelFormat* format  = surface->format;
+    Uint32* pixels = surface->pixels;
+    int diameter = (radius * 2);
+    int x = (radius - 1);
+    int y = 0;
+    int tx = 1;
+    int ty = 1;
+    int error = (tx - diameter);
+    while (x >= y)
+    {
+        // Each of the following renders an octant of the circle
+        if(id_color(*(pixels + centreX + x + (centreY - y)*surface->w),format) == 3)
+        {
+            *(pixels + centreX + x + (centreY - y)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX + x + (centreY - y)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX + x + (centreY - y)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+
+        if(id_color(*(pixels + centreX + x + (centreY + y)*surface->w),format) == 3)
+        {
+           *(pixels + centreX + x + (centreY + y)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX + x + (centreY + y)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX + x + (centreY + y)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+
+        if(id_color(*(pixels + centreX - x + (centreY - y)*surface->w),format) == 3)
+        {
+            *(pixels + centreX - x + (centreY - y)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX - x + (centreY - y)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX - x + (centreY - y)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+
+        if(id_color(*(pixels + centreX - x + (centreY + y)*surface->w),format) == 3)
+        {
+            *(pixels + centreX - x + (centreY + y)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX - x + (centreY + y)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX - x + (centreY + y)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+
+        if(id_color(*(pixels + centreX + y + (centreY - x)*surface->w),format) == 3)
+        {
+            *(pixels + centreX + y + (centreY - x)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX + y + (centreY - x)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX + y + (centreY - x)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+
+        if(id_color(*(pixels + centreX + y + (centreY + x)*surface->w),format) == 3)
+        {
+            *(pixels + centreX + y + (centreY + x)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX + y + (centreY + x)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX + y + (centreY + x)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+
+        if(id_color(*(pixels + centreX - y + (centreY - x)*surface->w),format) == 3)
+        {
+            *(pixels + centreX - y + (centreY - x)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX - y + (centreY - x)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX - y + (centreY - x)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+
+        if(id_color(*(pixels + centreX - y + (centreY + x)*surface->w),format) == 3)
+        {
+            *(pixels + centreX - y + (centreY + x)*surface->w) = SDL_MapRGB(format,255,0,0);
+        }
+        //else if(id_color(*(pixels + centreX - y + (centreY + x)*surface->w),format) == 1)
+        //{
+        //    *(pixels + centreX - y + (centreY + x)*surface->w) = SDL_MapRGB(format,255,255,255);
+        //}
+        if (error <= 0)
+        {
+  	        ++y;
+  	        error += ty;
+  	        ty += 2;
+        }
+        if (error > 0)
+        {
+  	        --x;
+  	        tx += 2;
+  	        error += (tx - diameter);
+        }
+    }
+       
+}
+
+void circle(SDL_Surface *surface, int x1, int y1, int x2, int y2,int radius)
+{
+    Uint32 *pixels = (*surface).pixels;
+    SDL_LockSurface(surface);
+    SDL_PixelFormat *format = (*surface).format;
+    int dx = x2 - x1;
+    int dy = y2 - y1;
+    while(dy != 0 || dx != 0)
+    {
+        //DrawCircle(surface, x1 + dx, y1 + dy, radius);
+        /**(pixels + x1 + dx + (y1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 + 1 + dx + (y1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 - 1 + dx + (y1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 + dx + (y1 + 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 + dx + (y1 - 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 + 1 + dx + (y1 + 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 + 1 + dx + (y1 - 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 - 1 + dx + (y1 + 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);
+        *(pixels + x1 - 1 + dx + (y1 - 1 + dy)*surface->w) = SDL_MapRGB(format,255,0,0);*/
+        if(dy > 0)
+        {
+            DrawCircle(surface,x1+dx,y1+dy,radius);
+            dy--;
+        }
+        else if(dy < 0)
+        {
+            DrawCircle(surface,x1+dx,y1+dy,radius);
+            dy++;
+        }
+        if(dx > 0)
+        {
+            DrawCircle(surface,x1+dx,y1+dy,radius);
+            dx--;
+        }
+        else if(dx < 0)
+        {
+            DrawCircle(surface,x1+dx,y1+dy,radius);
+            dx++;
+            
+        }
+    }
+    
+    SDL_UnlockSurface(surface);
+}
+
 int main(int argc, char** argv)
 {
-    if(argc < 3)
-        errx(EXIT_FAILURE,"Usage: <image> <word1> <word2> ...\n");
-       
-
-    char grid[][12] = {
+    if(argc < 13)
+        errx(EXIT_FAILURE,"Usage: <image> <gridxi> <gridyi> <gridxf> <gridyf> <numx> <numy> <let1> <let2> .... <letx*y> <word1> <word2> ... <wordn>\n");
+    int gridxi = atoi(argv[2]);
+    int gridyi = atoi(argv[3]);
+    int gridxf = atoi(argv[4]);
+    int gridyf = atoi(argv[5]);
+    int size = atoi(argv[6]);
+    int height = atoi(argv[7]);
+    /*char grid[][12] = {
         {'M','S','W','A','T','E','R','M','E','L','O','N'},
         {'Y','T','B','N','E','P','E','W','R','M','A','E'},
         {'R','R','L','W','P','A','P','A','Y','A','N','A'},
@@ -236,27 +375,35 @@ int main(int argc, char** argv)
         {'Y','R','R','E','B','P','S','A','R','N','N','W'},
         {'Y','R','R','E','B','E','U','L','B','L','G','I'},
         {'T','Y','P','A','T','E','A','E','P','A','C','E'}
-        };
-    
-    int wordnum = argc - 2;
+        };*/
+    char** grid = malloc(sizeof(char*) * height);
+    for(int y = 0; y < height; y++)
+    {
+        grid[y] = malloc(sizeof(char) * size);
+    }
+    for(int i = 1; i <= height*size; i++)
+    {
+        grid[(i-1)/size][(i-1)%size] = argv[7 + i][0];
+    }
+    int rest = 8 + height*size;
+    int wordnum = argc - (rest);
     char **words = malloc(sizeof(char*) * wordnum);
     for(int j = 0; j < wordnum; j++)
     {
         int len = 0;
-        for(int i = 0; argv[2 + j][i] != 0; i++)
+        for(int i = 0; argv[rest + j][i] != 0; i++)
         {
             len++;
         }
         words[j] = (char*) malloc(sizeof(char) * (len + 1));
         int count = 0;
-        while(argv[2 + j][count] != 0)
+        while(argv[rest + j][count] != 0)
         {
-            words[j][count] = argv[2 + j][count];
+            words[j][count] = argv[rest + j][count];
             count++;
         }
         words[j][len] = 0;
     }
-    
     //findword(size, height, grid, word, &xi, &yi, &xf, &yf);
     //printf("Mot %s en (%i,%i):(%i,%i)\n",word,yi,xi,yf,xf);
     
@@ -279,27 +426,50 @@ int main(int argc, char** argv)
         errx(EXIT_FAILURE, "%s", SDL_GetError());
     
     SDL_SetWindowSize(window, surface->w, surface->h);
-    
+    int xi;
+    int yi;
+    int xf;
+    int yf;
+    int errx = ((gridxf - gridxi) / size) / 4;
+    int erry = ((gridyf - gridyi) / size) / 4;
+    gridxf += errx + 1;
+    gridxi -= errx;
+    gridyf += erry + 1;
+    gridyi -= erry;
+    int sizeboxx = (gridxf - gridxi) / size;
+    int sizeboxy = (gridyf - gridyi) / height;
+    int sizeboxmid = (sizeboxx + sizeboxy) / 2;
     for(int i = 0; i < wordnum; i++)
     {
         findword(size, height, grid, words[i], &xi, &yi, &xf, &yf);
-        int xfirst = 9 + (xi*52) + 26;
-        int yfirst = 13 + (yi*48) + 24;
-        int xlast = 9 + (xf*52) + 26;
-        int ylast = 13 + (yf*48) + 24;
+        int xfirst = gridxi + (xi*sizeboxx) + sizeboxx/2;
+        int yfirst = gridyi + (yi*sizeboxy) + sizeboxy/2;
+        int xlast = gridxi + (xf*sizeboxx) + sizeboxx/2;
+        int ylast = gridyi + (yf*sizeboxy) + sizeboxy/2;
         if((xi == 0) && (xf == 0) && (yi == 0) && (yf == 0))
         {
             continue;
         }
-        draw_line(surface,xfirst,yfirst,xlast,ylast);
+        circle(surface, xfirst, yfirst, xlast, ylast, sizeboxmid/2);
     }
-
+    for(int i = 0; i < wordnum; i++)
+    {
+        free(words[i]);
+    }
+    free(words);
+    for(int i = 0; i < height; i++)
+    {
+        free(grid[i]);
+    }
+    free(grid);
     //draw_line(surface,xfirst,yfirst,xlast,ylast);
     //start in 9,13 / 632,684
     //height is 623,671
     //case is 52,48
+    
+    SDL_SaveBMP(surface, "../imgf/imgres.bmp");
 
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer,surface);
+    /*SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer,surface);
     SDL_RenderCopy(renderer,texture,NULL,NULL);
     SDL_RenderPresent(renderer);
     SDL_Event event;
@@ -323,6 +493,9 @@ int main(int argc, char** argv)
                 }
                 break;
         }
-    }
+    }*/
+
+    SDL_FreeSurface(surface);
+    SDL_DestroyRenderer(renderer);
     return EXIT_SUCCESS;
 }

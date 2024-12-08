@@ -125,7 +125,7 @@ void train(double i1, double i2)
             // Compute hidden layer 2 activation
             for (int j = 0; j < nbHiddenNodes2; j++)
             {
-                double activation = hiddenLayerBias1[j];
+                double activation = hiddenLayerBias2[j];
 
                 for (int k = 0; k < nbHiddenNodes1; k++)
                 {
@@ -139,7 +139,7 @@ void train(double i1, double i2)
             // Compute output layer activation
             for (int j = 0; j < nbOutputs; j++)
             {
-                double activation = hiddenLayerBias2[j];
+                double activation = outputLayerBias[j];
 
                 for (int k = 0; k < nbHiddenNodes2; k++)
                 {
@@ -227,8 +227,11 @@ void train(double i1, double i2)
             }
         }
     }
+
+    // If asked, it tests the entry given
     if (i1 < 2.0)
     {
+
         for (int j = 0; j < nbHiddenNodes1; j++)
         {
             double activation = hiddenLayerBias1[j];
@@ -241,7 +244,7 @@ void train(double i1, double i2)
 
         for (int j = 0; j < nbHiddenNodes2; j++)
         {
-            double activation = hiddenLayerBias1[j];
+            double activation = hiddenLayerBias2[j];
 
             for (int k = 0; k < nbHiddenNodes1; k++)
             {
@@ -253,7 +256,7 @@ void train(double i1, double i2)
 
         for (int j = 0; j < nbOutputs; j++)
         {
-            double activation = hiddenLayerBias2[j];
+            double activation = outputLayerBias[j];
 
             for (int k = 0; k < nbHiddenNodes2; k++)
             {
@@ -268,6 +271,8 @@ void train(double i1, double i2)
         else
             printf(" = 0\n");
     }
+
+    // Save Weights and Bais in Data directory
     
     char *folder = "Data";
     struct stat sb;
@@ -367,12 +372,192 @@ void use(double i1, double i2)
     FILE *fp = fopen("Data/xandHiddenNodesBais1.txt", "r");
 
     if (fp == NULL) 
+    {
         train(i1, i2);
-
+        return;
+    }
+    
     for (int i = 0; i < nbHiddenNodes1; i++)
-        
+    {
+        double d;
+
+        if (fscanf(fp, "%lf", &d) == -1)
+            errx(EXIT_FAILURE, "error");
+
+        //printf("\n%lf", d);
+
+        hiddenLayerBias1[i] = d;
+    }
 
     fclose(fp);
+
+    fp = fopen("Data/xandHiddenNodesWeights1.txt", "r");
+
+    if (fp == NULL)
+    {
+        train(i1, i2);
+        return;
+    }
+
+    //printf("\n---------------------");
+    
+    for (int i = 0; i < nbHiddenNodes1; i++)
+    {
+        for (int j = 0; j < nbInputs; j++)
+        {
+            double d;
+
+            if (fscanf(fp, "%lf", &d) == -1)
+                errx(EXIT_FAILURE, "error");
+
+            //printf("\n%lf", d);
+
+            hiddenWeights1[j][i] = d;
+        }
+    }
+
+    fclose(fp);
+
+    //printf("\n---------------------");
+
+    fp = fopen("Data/xandHiddenNodesBais2.txt", "r");
+
+    if (fp == NULL) 
+    {
+        train(i1, i2);
+        return;
+    }
+    
+    for (int i = 0; i < nbHiddenNodes2; i++)
+    {
+        double d;
+
+        if (fscanf(fp, "%lf", &d) == -1)
+            errx(EXIT_FAILURE, "error");
+
+        //printf("\n%lf", d);
+
+        hiddenLayerBias2[i] = d;
+    }
+
+    fclose(fp);
+
+    fp = fopen("Data/xandHiddenNodesWeights2.txt", "r");
+
+    if (fp == NULL)
+    {
+        train(i1, i2);
+        return;
+    }
+
+    //printf("\n---------------------");
+    
+    for (int i = 0; i < nbHiddenNodes2; i++)
+    {
+        for (int j = 0; j < nbHiddenNodes1; j++)
+        {
+            double d;
+
+            if (fscanf(fp, "%lf", &d) == -1)
+                errx(EXIT_FAILURE, "error");
+
+            //printf("\n%lf", d);
+
+            hiddenWeights2[j][i] = d;
+        }
+    }
+
+    fclose(fp);
+
+    //printf("\n---------------------");
+
+    fp = fopen("Data/xandOutputsBais.txt", "r");
+
+    if (fp == NULL) 
+    {
+        train(i1, i2);
+        return;
+    }
+    
+    for (int i = 0; i < nbOutputs; i++)
+    {
+        double d;
+
+        if (fscanf(fp, "%lf", &d) == -1)
+            errx(EXIT_FAILURE, "error");
+
+        //printf("\n%lf", d);
+
+        outputLayerBias[i] = d;
+    }
+
+    fclose(fp);
+
+    fp = fopen("Data/xandOutputsWeights.txt", "r");
+
+    if (fp == NULL)
+    {
+        train(i1, i2);
+        return;
+    }
+
+    //printf("\n---------------------");
+    
+    for (int i = 0; i < nbOutputs; i++)
+    {
+        for (int j = 0; j < nbHiddenNodes2; j++)
+        {
+            double d;
+
+            if (fscanf(fp, "%lf", &d) == -1)
+                errx(EXIT_FAILURE, "error");
+
+            //printf("\n%lf", d);
+
+            outputWeights[j][i] = d;
+        }
+    }
+
+    fclose(fp);
+
+    for (int j = 0; j < nbHiddenNodes1; j++)
+    {
+        double activation = hiddenLayerBias1[j];
+        
+        activation +=  i1 * hiddenWeights1[0][j];
+        activation +=  i2 * hiddenWeights1[1][j];
+
+        hiddenLayer1[j] = sigmoid(activation);
+    }
+
+    for (int j = 0; j < nbHiddenNodes2; j++)
+    {
+        double activation = hiddenLayerBias2[j];
+
+        for (int k = 0; k < nbHiddenNodes1; k++)
+        {
+            activation += hiddenLayer1[k] * hiddenWeights2[k][j];
+        }
+
+        hiddenLayer2[j] = sigmoid(activation);
+    }
+
+    for (int j = 0; j < nbOutputs; j++)
+    {
+        double activation = outputLayerBias[j];
+
+        for (int k = 0; k < nbHiddenNodes2; k++)
+        {
+            activation += hiddenLayer2[k] * outputWeights[k][j];
+        }
+
+        outputLayer[j] = sigmoid(activation);
+    }
+    
+    if (outputLayer[0] > 0.5)
+        printf(" = 1\n");
+    else
+        printf(" = 0\n");
 }
 
 int main(int argc, char **argv)

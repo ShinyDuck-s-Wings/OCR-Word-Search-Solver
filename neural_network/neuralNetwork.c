@@ -6,10 +6,13 @@
 #include <dirent.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <sys/stat.h>
+#include "neuralNetwork.h"
+
 
 #define nbInputs 784
-#define nbHiddenNodes1 128
-#define nbHiddenNodes2 128
+#define nbHiddenNodes1 256
+#define nbHiddenNodes2 256
 #define nbOutputs 26
 
 void initiateTraining(double **trainInputs, double **trainOutputs,
@@ -32,8 +35,6 @@ void initiateTraining(double **trainInputs, double **trainOutputs,
                 path[0] = 0;
                 path = strcat(path, named);
                 path = strcat(path, dir->d_name);
-                
-                // SDL_Surface *surface = IMG_Load(path);
 
                 SDL_Surface *surface = SDL_ConvertSurfaceFormat(IMG_Load(path),
                         SDL_PIXELFORMAT_RGB888, 0);
@@ -228,8 +229,8 @@ void trainLetter(int nbTrainingInputs)
     for (int i = 0; i < nbTrainingInputs; i++)
         trainSetOrder[i] = i;
 
-    int nbEpochs = 9984;
-
+    //int nbEpochs = 9984;
+    int nbEpochs = 1000;
     for (int epoch = 0; epoch < nbEpochs; epoch++)
     {
         shuffle(trainSetOrder, nbTrainingInputs);
@@ -277,15 +278,15 @@ void trainLetter(int nbTrainingInputs)
             }
             
             // Show the evolution of the Outputs
-
-            if (epoch == nbEpochs)
+            printf("epoch %d / %d\n", epoch, nbEpochs-1);
+            if (epoch == nbEpochs-1)
             {
                 char mp = alphabet[0];
                 double oL = layerOutputs[0];
-                printf("%g,", layerOutputs[0]);
+                //printf("%g,", layerOutputs[0]);
                 for (int l = 1; l < nbOutputs; l++)
                 {
-                    printf("%g,", layerOutputs[l]);
+                    //printf("%g,", layerOutputs[l]);
                     if (oL < layerOutputs[l])
                     {
                         oL = layerOutputs[l];
@@ -374,6 +375,82 @@ void trainLetter(int nbTrainingInputs)
             }
         }
     }
+
+
+    // Save Weights and Bais in ImageData directory
+
+    char *folder = "ImageData";
+    struct stat sb;
+
+    if (!(stat(folder, &sb) == 0 && S_ISDIR(sb.st_mode)))
+        mkdir("ImageData", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+    FILE *fp = fopen("ImageData/HiddenNodesBais1.txt", "w");
+
+    if (fp == NULL) 
+        errx(EXIT_FAILURE, "Cannot save data");
+
+    for (int i = 0; i < nbHiddenNodes1; i++)
+        fprintf(fp, "%f\n", biasHiddenNodes1[i]);
+
+    fclose(fp);
+
+    fp = fopen("ImageData/HiddenNodesWeights1.txt", "w");
+
+    if (fp == NULL)
+        errx(EXIT_FAILURE, "Cannot save date");
+    
+    for (int i = 0; i < nbHiddenNodes1; i++)
+        for (int j = 0; j < nbInputs; j++)
+            fprintf(fp, "%f\n", weightsHiddenNodes1[i][j]);
+
+    fclose(fp);
+
+    
+    fp = fopen("ImageData/HiddenNodesBais2.txt", "w");
+
+    if (fp == NULL) 
+        errx(EXIT_FAILURE, "Cannot save data");
+
+    for (int i = 0; i < nbHiddenNodes2; i++)
+        fprintf(fp, "%f\n", biasHiddenNodes2[i]);
+
+    fclose(fp);
+
+    fp = fopen("ImageData/HiddenNodesWeights2.txt", "w");
+
+    if (fp == NULL)
+        errx(EXIT_FAILURE, "Cannot save date");
+    
+    for (int i = 0; i < nbHiddenNodes2; i++)
+        for (int j = 0; j < nbHiddenNodes1; j++)
+            fprintf(fp, "%f\n", weightsHiddenNodes2[i][j]);
+
+    fclose(fp);
+
+
+    fp = fopen("ImageData/OutputsBais.txt", "w");
+
+    if (fp == NULL) 
+        errx(EXIT_FAILURE, "Cannot save data");
+
+    for (int i = 0; i < nbOutputs; i++)
+        fprintf(fp, "%f\n", biasOutputs[i]);
+
+    fclose(fp);
+
+    fp = fopen("ImageData/OutputsWeights.txt", "w");
+
+    if (fp == NULL)
+        errx(EXIT_FAILURE, "Cannot save date");
+    
+    for (int i = 0; i < nbOutputs; i++)
+        for (int j = 0; j < nbHiddenNodes2; j++)
+            fprintf(fp, "%f\n", weightsOutputs[i][j]);
+
+    fclose(fp);
+
+
     for (int i = 0; i < nbTrainingInputs; i++)
         free(trainInputs[i]);
     free(trainInputs);
@@ -383,9 +460,315 @@ void trainLetter(int nbTrainingInputs)
     free(possible_outputs);
 }
 
-int main(int argc, char** argv)
+void setupInputs(int* inputs, char* path)
 {
-    trainLetter(26);
+    SDL_Surface *surface = SDL_ConvertSurfaceFormat(IMG_Load(path),
+            SDL_PIXELFORMAT_RGB888, 0);
 
+    if (surface == NULL)
+        printf("%s\n", path);
+
+    Uint32 *pixels = (Uint32 *)surface->pixels;
+
+    for(int i = 0; i < surface->h; i++)
+    {
+        for(int j = 0; j < surface->w; j++)
+        {
+            Uint32 pixel = pixels[i * surface->w + j];
+            Uint8 r = pixel >> 16 & 0xFF;
+            Uint8 g = pixel >> 8 & 0xFF;
+            Uint8 b = pixel & 0xFF;
+
+            inputs[i * surface->w + j] = 
+                0.212671f * r + 0.715160f * g + 0.072169 * b;
+            // printf("%g", trainInputs[k][i * surface->w + j]);
+            if (inputs[i * surface->w + j] > 190)
+                inputs[i * surface->w + j] = 0.0;
+            else
+                inputs[i * surface->w + j] = 1.0;
+        }
+    }
+    SDL_FreeSurface(surface);
+}
+
+char use(char* path, int nbTrainingInputs)
+{
+    // Weights
+    double weightsHiddenNodes1[nbHiddenNodes1][nbInputs];
+    double weightsHiddenNodes2[nbHiddenNodes2][nbHiddenNodes1];
+    double weightsOutputs[nbOutputs][nbHiddenNodes2];
+    
+
+    // Bias
+    double biasHiddenNodes1[nbHiddenNodes1];
+    double biasHiddenNodes2[nbHiddenNodes2];
+    double biasOutputs[nbOutputs];
+
+
+    // Layer
+    double layerHiddenNodes1[nbHiddenNodes1];
+    double layerHiddenNodes2[nbHiddenNodes2];
+    double layerOutputs[nbOutputs];
+    
+
+    char *folder = "../neural_network/ImageData";
+    struct stat sb;
+
+    if (!(stat(folder, &sb) == 0 && S_ISDIR(sb.st_mode)))
+    {
+        trainLetter(nbTrainingInputs);
+        return 0;
+    }
+
+    FILE *fp = fopen("../neural_network/ImageData/HiddenNodesBais1.txt", "r");
+
+    if (fp == NULL) 
+    {
+        trainLetter(nbTrainingInputs);
+        return 0;
+    }
+    
+    for (int i = 0; i < nbHiddenNodes1; i++)
+    {
+        double d;
+
+        if (fscanf(fp, "%lf", &d) == -1)
+            errx(EXIT_FAILURE, "error");
+
+        //printf("\n%lf", d);
+
+        biasHiddenNodes1[i] = d;
+    }
+
+    fclose(fp);
+
+    fp = fopen("../neural_network/ImageData/HiddenNodesWeights1.txt", "r");
+
+    if (fp == NULL)
+    {
+        trainLetter(nbTrainingInputs);
+        return 0;
+    }
+
+    //printf("\n---------------------");
+    
+    for (int i = 0; i < nbHiddenNodes1; i++)
+    {
+        for (int j = 0; j < nbInputs; j++)
+        {
+            double d;
+
+            if (fscanf(fp, "%lf", &d) == -1)
+                errx(EXIT_FAILURE, "error");
+
+            //printf("\n%lf", d);
+
+            weightsHiddenNodes1[i][j] = d;
+        }
+    }
+
+    fclose(fp);
+
+    
+    fp = fopen("../neural_network/ImageData/HiddenNodesBais2.txt", "r");
+
+    if (fp == NULL) 
+    {
+        trainLetter(nbTrainingInputs);
+        return 0;
+    }
+    
+    for (int i = 0; i < nbHiddenNodes2; i++)
+    {
+        double d;
+
+        if (fscanf(fp, "%lf", &d) == -1)
+            errx(EXIT_FAILURE, "error");
+
+        //printf("\n%lf", d);
+
+        biasHiddenNodes2[i] = d;
+    }
+
+    fclose(fp);
+
+    fp = fopen("../neural_network/ImageData/HiddenNodesWeights2.txt", "r");
+
+    if (fp == NULL)
+    {
+        trainLetter(nbTrainingInputs);
+        return 0;
+    }
+
+    //printf("\n---------------------");
+    
+    for (int i = 0; i < nbHiddenNodes2; i++)
+    {
+        for (int j = 0; j < nbHiddenNodes1; j++)
+        {
+            double d;
+
+            if (fscanf(fp, "%lf", &d) == -1)
+                errx(EXIT_FAILURE, "error");
+
+            //printf("\n%lf", d);
+
+            weightsHiddenNodes2[i][j] = d;
+        }
+    }
+
+    fclose(fp);
+
+
+    fp = fopen("../neural_network/ImageData/OutputsBais.txt", "r");
+
+    if (fp == NULL) 
+    {
+        trainLetter(nbTrainingInputs);
+        return 0;
+    }
+    
+    for (int i = 0; i < nbOutputs; i++)
+    {
+        double d;
+
+        if (fscanf(fp, "%lf", &d) == -1)
+            errx(EXIT_FAILURE, "error");
+
+        //printf("\n%lf", d);
+
+        biasOutputs[i] = d;
+    }
+
+    fclose(fp);
+
+    fp = fopen("../neural_network/ImageData/OutputsWeights.txt", "r");
+
+    if (fp == NULL)
+    {
+        trainLetter(nbTrainingInputs);
+        return 0;
+    }
+
+    //printf("\n---------------------");
+    
+    for (int i = 0; i < nbOutputs; i++)
+    {
+        for (int j = 0; j < nbHiddenNodes2; j++)
+        {
+            double d;
+
+            if (fscanf(fp, "%lf", &d) == -1)
+                errx(EXIT_FAILURE, "error");
+
+            //printf("\n%lf", d);
+
+            weightsOutputs[i][j] = d;
+        }
+    }
+
+    fclose(fp);
+    
+    
+    int inputs[nbInputs];
+
+    setupInputs(inputs, path);
+
+    // Activation of the first Hidden Layer
+
+    for (int j = 0; j < nbHiddenNodes1; j++)
+    {
+        double activation = biasHiddenNodes1[j];
+
+        for (int k = 0; k < nbInputs; k++)
+            activation += inputs[k] * weightsHiddenNodes1[j][k];
+
+        layerHiddenNodes1[j] = sigmoid(activation);
+    }
+
+    // Activation of the second Hidden Layer
+
+    for (int j = 0; j < nbHiddenNodes2; j++)
+    {
+        double activation = biasHiddenNodes2[j];
+
+        for (int k = 0; k < nbHiddenNodes1; k++)
+            activation += layerHiddenNodes1[k] * weightsHiddenNodes2[j][k];
+
+        layerHiddenNodes2[j] = sigmoid(activation);
+    }
+
+    // Activation of the Output Layer
+
+    for (int j = 0; j < nbOutputs; j++)
+    {
+        double activation = biasOutputs[j];
+
+        for (int k = 0; k < nbHiddenNodes2; k++)
+            activation += layerHiddenNodes2[k] * weightsOutputs[j][k];
+
+        layerOutputs[j] = sigmoid(activation);
+    }
+
+    char mp = 'A';
+    double oL = layerOutputs[0];
+    //printf("%g,", layerOutputs[0]);
+    for (int l = 1; l < nbOutputs; l++)
+    {
+        //printf("%g,", layerOutputs[l]);
+        if (oL < layerOutputs[l])
+        {
+            oL = layerOutputs[l];
+            mp = 'A' + l;
+        }
+    }
+    return mp;
+}
+/*
+int main(int argc, char **argv)
+{
+    if (argc < 2)
+        errx(EXIT_FAILURE,"You need 2 arguments");
+    if (strcmp(argv[1], "train") == 0)
+    {
+        DIR *d;
+        struct dirent *dir;
+        char *named = "../neural_network/learning_data_base/";
+        d = opendir(named);
+        int k = 0;
+        if (d)
+        {
+            while ((dir = readdir(d)) != NULL)
+                if (dir->d_name[0] != '.')
+                    k++;
+            closedir(d);
+        }
+        printf("%d\n",k);
+        trainLetter(k);
+    }
+    else if (strcmp(argv[1], "use") == 0)
+    {
+        if (argc != 3)
+            errx(EXIT_FAILURE,"You need 3 arguments");
+        DIR *d;
+        struct dirent *dir;
+        char *named = "../neural_network/learning_data_base/";
+        d = opendir(named);
+        int k = 0;
+        if (d)
+        {
+            while ((dir = readdir(d)) != NULL)
+                if (dir->d_name[0] != '.')
+                    k++;
+            closedir(d);
+        }
+        //printf("%d\n",k);
+
+        printf("%c\n", use(argv[2],k));
+    }
+    else
+        errx(EXIT_FAILURE, "Unknown arguments");
+    
     return EXIT_SUCCESS;
 }
+*/

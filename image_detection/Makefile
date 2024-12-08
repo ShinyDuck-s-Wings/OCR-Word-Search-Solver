@@ -8,7 +8,7 @@ LDLIBS =
 all: identify
 
 identify: identify.c
-	$(CC) $(CFLAGS) identify.c -o identify $(LDFLAGS)
+	$(CC) $(CFLAGS) identify.c morphoMaths.c -o identify $(LDFLAGS)
 
 .PHONY: clean
 
